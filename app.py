@@ -28,11 +28,25 @@ async def muat_model_saat_startup():
     print("Model berhasil dimuat")
 
 
-def praproses_gambar(gambar: Image.Image) -> np.ndarray:
+def praproses_gambar(gambar: Image.Image):
     """Melakukan praproses pada gambar sebelum diprediksi"""
-    gambar = gambar.convert('RGB').resize((224, 224))
-    array_gambar = np.expand_dims(np.array(gambar, dtype=np.float32) / 255.0, axis=0)
+
+    # Validasi: pastikan gambar grayscale (hitam putih)
+    if gambar.mode not in ['L', 'I']:
+        print(f"Gambar mode: {gambar.mode}")  # Debugging: cek mode gambar
+        raise HTTPException(
+            status_code=400,
+            detail=f"Gambar ditolak! Mode gambar: {gambar.mode}. Harus Mode L (Grayscale)."
+        )
+
+    print(f"Mode gambar: {gambar.mode}")  
+
+    gambar = gambar.resize((224, 224))
+    array_gambar = np.expand_dims(np.array(gambar, dtype=np.float32) / 255.0, axis=(0, -1))
+
+    print(f"Gambar telah dipraproses dengan bentuk: {array_gambar.shape}")
     return array_gambar
+
 
 
 @app.get("/")
@@ -58,10 +72,12 @@ async def prediksi(file: UploadFile = File(...)):
 
     try:
         gambar = Image.open(file.file)
-        data_gambar = praproses_gambar(gambar)
-        hasil_prediksi = model.predict(data_gambar, verbose=0)[0]
 
+        data_gambar = praproses_gambar(gambar)
+
+        hasil_prediksi = model.predict(data_gambar, verbose=0)[0]
         indeks_kelas = int(np.argmax(hasil_prediksi))
+
         return {
             "predicted_class": DAFTAR_KELAS[indeks_kelas],
             "confidence": float(np.max(hasil_prediksi)),
@@ -70,6 +86,8 @@ async def prediksi(file: UploadFile = File(...)):
             }
         }
 
+    except HTTPException as e:
+        raise e  # biar pesan 400 tetap keluar
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Terjadi kesalahan saat prediksi: {str(e)}")
 
