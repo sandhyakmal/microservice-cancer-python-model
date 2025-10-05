@@ -5,19 +5,16 @@ import tensorflow as tf
 from tensorflow import keras
 import os
 
-# Konfigurasi dasar aplikasi
 app = FastAPI(
     title="API Deteksi Kanker Payudara",
     version="1.0.0",
     root_path="/models"
 )
 
-# Daftar kelas dan path model
 DAFTAR_KELAS = ["Cancer", "Non-Cancer"]
 LOKASI_MODEL = "breast_cancer_model.h5"
 model = None
 
-# Nonaktifkan log TensorFlow yang tidak penting
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2'
 
 
